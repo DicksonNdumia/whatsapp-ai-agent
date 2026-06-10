@@ -66,12 +66,6 @@ app.post("/webhook", async (req, res) => {
   }
 });
 
-app.post("/webhook", (req, res) => {
-  console.log(JSON.stringify(req.body, null, 2));
-
-  res.sendStatus(200);
-});
-
 app.listen(3000, () => {
   console.log("Server running");
 });
