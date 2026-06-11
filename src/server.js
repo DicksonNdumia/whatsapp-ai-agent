@@ -75,32 +75,47 @@ app.get("/webhook", (req, res) => {
 // --- 2. OPTIMIZED: MESSAGE RECEIVER (POST HANDLER) ---
 app.post("/webhook", async (req, res) => {
   try {
-    const value = req.body.entry?.[0]?.changes?.[0]?.value;
-    const message = value?.messages?.[0];
+    // Log the entire incoming body to your Render terminal so you can see exactly what Meta is sending
+    console.log("INCOMING WEBHOOK BODY:", JSON.stringify(req.body, null, 2));
 
-    // Ignore status updates (sent, delivered, read receipts) to avoid double processing
-    if (value?.statuses) {
+    const entry = req.body?.entry?.[0];
+    const change = entry?.changes?.[0];
+    const value = change?.value;
+    
+    // 1. Immediately ignore status updates (delivered, read receipts) so they don't break the logic
+    if (value?.statuses && !value?.messages) {
+      console.log("Ignored status receipt payload.");
       return res.sendStatus(200);
     }
 
-    if (!message || !message.text?.body) {
+    // 2. Extract the message object safely
+    const message = value?.messages?.[0];
+
+    if (!message) {
+      console.log("Webhook received, but no message object found.");
       return res.sendStatus(200);
     }
 
     const phone = message.from;
-    const userMessage = message.text.body;
+    
+    // 3. Handle different text message structures (sometimes it's directly message.text, sometimes nested)
+    const userMessage = message.text?.body || message.body;
 
-    console.log(`Received message from ${phone}: ${userMessage}`);
+    if (!userMessage) {
+      console.log("Message object found, but text body was empty.");
+      return res.sendStatus(200);
+    }
 
-    // CRITICAL: Acknowledge Meta immediately to prevent timeout retries
+    console.log(`★★★ PARSED SUCCESS ★★★ Phone: ${phone} | Msg: ${userMessage}`);
+
+    // Acknowledge Meta immediately to prevent timeout retries
     res.sendStatus(200);
 
-    // --- 3. ASYNCHRONOUS PROCESSING ---
-    // This executes in the background AFTER we already sent res.sendStatus(200)
+    // Pass the cleaned arguments to your background worker
     processAIResponse(phone, userMessage);
+
   } catch (error) {
-    console.error("Webhook Error:", error.message);
-    // Always ensure a 200 is sent to Meta so they don't block your webhook
+    console.error("Critical error inside Webhook Router:", error.message);
     if (!res.headersSent) {
       res.sendStatus(200);
     }
