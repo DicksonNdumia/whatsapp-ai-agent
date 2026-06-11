@@ -9,7 +9,6 @@ const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
 });
 
-// Clean HTTP function to transmit email alerts without breaking on Render's network ports
 async function sendNotificationEmail(senderName, phone, userMessage) {
   try {
     console.log(`📡 Dispatching secure HTTP email request via Resend API...`);
@@ -17,8 +16,8 @@ async function sendNotificationEmail(senderName, phone, userMessage) {
     await axios.post(
       "https://api.resend.com/emails",
       {
-        from: "WhatsApp Bot <onboarding@resend.dev>", // Default free testing domain
-        to: process.env.MY_EMAIL_ADDRESS, // Your personal inbox
+        from: "WhatsApp Bot <onboarding@resend.dev>",
+        to: process.env.MY_EMAIL_ADDRESS,
         subject: `📅 New WhatsApp Meeting Request: ${senderName}`,
         html: `
           <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
@@ -38,7 +37,7 @@ async function sendNotificationEmail(senderName, phone, userMessage) {
         },
       },
     );
-    console.log("📨 Email notification successfully delivered to your inbox!");
+    //console.log("📨 Email notification successfully delivered to your inbox!");
   } catch (error) {
     console.error("❌ Failed to transmit notification email via HTTP:");
     if (error.response) {
@@ -57,8 +56,6 @@ async function sendWhatsappMessage(to, text) {
       .replace(/"/g, '\\"')
       .trim();
 
-    console.log(`Sending sanitized text to ${cleanPhone}: "${cleanText}"`);
-
     await axios.post(
       `https://graph.facebook.com/v23.0/${process.env.PHONE_NUMBER_ID}/messages`,
       {
@@ -74,7 +71,6 @@ async function sendWhatsappMessage(to, text) {
         },
       },
     );
-    console.log("✓ Message successfully delivered to WhatsApp API");
   } catch (error) {
     console.error("Error sending WhatsApp message:");
     if (error.response) {
@@ -88,7 +84,6 @@ async function sendWhatsappMessage(to, text) {
 const app = express();
 app.use(express.json());
 
-// --- WEBHOOK VERIFICATION (GET HANDLER) ---
 app.get("/webhook", (req, res) => {
   const mode = req.query["hub.mode"];
   const token = req.query["hub.verify_token"];
@@ -103,7 +98,6 @@ app.get("/webhook", (req, res) => {
   }
 });
 
-// --- MESSAGE RECEIVER (POST HANDLER) ---
 app.post("/webhook", async (req, res) => {
   try {
     const entry = req.body?.entry?.[0];
@@ -131,7 +125,6 @@ app.post("/webhook", async (req, res) => {
       `★★★ PARSED SUCCESS ★★★ From: ${senderName} (${phone}) | Msg: ${userMessage}`,
     );
 
-    // --- MEETING KEYWORD FILTER ---
     const lowerMessage = userMessage.toLowerCase();
     const keywords = [
       "meet",
@@ -146,7 +139,6 @@ app.post("/webhook", async (req, res) => {
     );
 
     if (wantsToMeet) {
-      // Fire the safe HTTP request instead of the legacy SMTP port configuration
       sendNotificationEmail(senderName, phone, userMessage);
     }
 
