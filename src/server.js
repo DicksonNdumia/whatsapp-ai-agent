@@ -1,61 +1,180 @@
 import express from "express";
 import dotenv from "dotenv";
-import aiRoutes from "./routes/ai.routes.js";
+import axios from "axios";
+import { GoogleGenAI } from "@google/genai";
+import nodemailer from "nodemailer"; // Cleaned up to match your ES Module structure
 
 dotenv.config();
+
+const ai = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY,
+});
+
+// 1. Configure your email transporter
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER, // Set this in your Render env variables
+    pass: process.env.EMAIL_PASS, // Use a 16-character Google App Password here
+  },
+});
+
+async function sendWhatsappMessage(to, text) {
+  try {
+    // Ensure the phone number is just digits, no plus signs or spaces
+    const cleanPhone = String(to).replace(/\D/g, "");
+
+    // Force Gemini's text into a completely clean, flat string
+    const cleanText = String(text)
+      .replace(/[\r\n]+/g, " ") // Flatten line breaks into single spaces
+      .replace(/"/g, '\\"') // Escape double quotes
+      .trim();
+
+    console.log(`Sending sanitized text to ${cleanPhone}: "${cleanText}"`);
+
+    await axios.post(
+      `https://graph.facebook.com/v23.0/${process.env.PHONE_NUMBER_ID}/messages`,
+      {
+        messaging_product: "whatsapp",
+        to: cleanPhone,
+        type: "text",
+        text: {
+          body: cleanText,
+        },
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+      },
+    );
+    console.log("✓ Message successfully delivered to WhatsApp API");
+  } catch (error) {
+    console.error("Error sending WhatsApp message:");
+    if (error.response) {
+      console.error(JSON.stringify(error.response.data, null, 2));
+    } else {
+      console.error(error.message);
+    }
+  }
+}
 
 const app = express();
 app.use(express.json());
 
-// --- 1. ADDED: WEBHOOK VERIFICATION (GET HANDLER) ---
-// Meta uses this to verify your server when you set up the Webhook in the App Dashboard
+// --- 1. WEBHOOK VERIFICATION (GET HANDLER) ---
 app.get("/webhook", (req, res) => {
   const mode = req.query["hub.mode"];
   const token = req.query["hub.verify_token"];
   const challenge = req.query["hub.challenge"];
 
-  // Replace "YOUR_VERIFY_TOKEN" with a secure string you set in the Meta Developer Portal
-  const VERIFY_TOKEN = process.env.VERIFY_TOKEN || "YOUR_VERIFY_TOKEN";
+  const MY_VERIFY_TOKEN = "your_secret_token_here";
 
-  if (mode && token) {
-    if (mode === "subscribe" && token === VERIFY_TOKEN) {
-      console.log("WEBHOOK_VERIFIED");
-      return res.status(200).send(challenge);
-    }
+  console.log("=== WEBHOOK VERIFICATION ATTEMPT ===");
+  console.log("Received Token:", token);
+
+  if (mode === "subscribe" && token === MY_VERIFY_TOKEN) {
+    console.log("--- VERIFICATION SUCCESSFUL! ---");
+    return res.status(200).send(challenge);
+  } else {
+    console.log("--- VERIFICATION FAILED: Token Mismatch ---");
     return res.sendStatus(403);
   }
-  res.sendStatus(400);
 });
 
 // --- 2. OPTIMIZED: MESSAGE RECEIVER (POST HANDLER) ---
 app.post("/webhook", async (req, res) => {
   try {
-    const value = req.body.entry?.[0]?.changes?.[0]?.value;
-    const message = value?.messages?.[0];
+    console.log("INCOMING WEBHOOK BODY:", JSON.stringify(req.body, null, 2));
 
-    // Ignore status updates (sent, delivered, read receipts) to avoid double processing
-    if (value?.statuses) {
+    const entry = req.body?.entry?.[0];
+    const change = entry?.changes?.[0];
+    const value = change?.value;
+
+    // Immediately ignore status updates (delivered, read receipts)
+    if (value?.statuses && !value?.messages) {
+      console.log("Ignored status receipt payload.");
       return res.sendStatus(200);
     }
 
-    if (!message || !message.text?.body) {
+    const message = value?.messages?.[0];
+    if (!message) {
+      console.log("Webhook received, but no message object found.");
       return res.sendStatus(200);
     }
 
     const phone = message.from;
-    const userMessage = message.text.body;
+    const userMessage = message.text?.body || message.body;
 
-    console.log(`Received message from ${phone}: ${userMessage}`);
+    if (!userMessage) {
+      console.log("Message object found, but text body was empty.");
+      return res.sendStatus(200);
+    }
 
-    // CRITICAL: Acknowledge Meta immediately to prevent timeout retries
+    const senderName = value?.contacts?.[0]?.profile?.name || "Unknown User";
+    console.log(
+      `★★★ PARSED SUCCESS ★★★ From: ${senderName} (${phone}) | Msg: ${userMessage}`,
+    );
+
+    // --- MEETING KEYWORD FILTER & EMAIL TRIGGER ---
+    const lowerMessage = userMessage.toLowerCase();
+    const keywords = [
+      "meet",
+      "meeting",
+      "schedule",
+      "appointment",
+      "call",
+      "discuss",
+    ];
+    const wantsToMeet = keywords.some((keyword) =>
+      lowerMessage.includes(keyword),
+    );
+
+    if (wantsToMeet) {
+      console.log(
+        `🚨 Meeting intent detected from ${senderName}. Sending email alert...`,
+      );
+
+      const mailOptions = {
+        from: process.env.MY_EMAIL_ADDRESS,
+        to: process.env.MY_EMAIL_ADDRESS, // Sends the message directly back to your own inbox
+        subject: `📅 New WhatsApp Meeting Request: ${senderName}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+            <h2 style="color: #25D366;">New Meeting Intent Detected!</h2>
+            <p><strong>Sender Name:</strong> ${senderName}</p>
+            <p><strong>WhatsApp Number:</strong> +${phone}</p>
+            <p><strong>Raw Message:</strong> "${userMessage}"</p>
+            <hr style="border: 0; border-top: 1px solid #eeeeee;" />
+            <p style="font-size: 12px; color: #777777;"><em>This notification was auto-generated by your WhatsApp Bot backend.</em></p>
+          </div>
+        `,
+      };
+
+      // Fire and forget email block so it doesn't slow down the response loop
+      transporter
+        .sendMail(mailOptions)
+        .then(() =>
+          console.log(
+            "📨 Email notification successfully routed to your inbox.",
+          ),
+        )
+        .catch((err) =>
+          console.error(
+            "❌ Failed to transmit notification email:",
+            err.message,
+          ),
+        );
+    }
+
+    // Acknowledge Meta immediately to prevent timeout retries
     res.sendStatus(200);
 
-    // --- 3. ASYNCHRONOUS PROCESSING ---
-    // This executes in the background AFTER we already sent res.sendStatus(200)
+    // Pass the cleaned arguments to your background worker
     processAIResponse(phone, userMessage);
   } catch (error) {
-    console.error("Webhook Error:", error.message);
-    // Always ensure a 200 is sent to Meta so they don't block your webhook
+    console.error("Critical error inside Webhook Router:", error.message);
     if (!res.headersSent) {
       res.sendStatus(200);
     }
