@@ -2,7 +2,6 @@ import express from "express";
 import dotenv from "dotenv";
 import axios from "axios";
 import { GoogleGenAI } from "@google/genai";
-import nodemailer from "nodemailer"; // Cleaned up to match your ES Module structure
 
 dotenv.config();
 
@@ -10,24 +9,52 @@ const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
 });
 
-// 1. Configure your email transporter
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER, // Set this in your Render env variables
-    pass: process.env.EMAIL_PASS, // Use a 16-character Google App Password here
-  },
-});
+// Clean HTTP function to transmit email alerts without breaking on Render's network ports
+async function sendNotificationEmail(senderName, phone, userMessage) {
+  try {
+    console.log(`📡 Dispatching secure HTTP email request via Resend API...`);
+
+    await axios.post(
+      "https://api.resend.com/emails",
+      {
+        from: "WhatsApp Bot <onboarding@resend.dev>", // Default free testing domain
+        to: process.env.MY_EMAIL_ADDRESS, // Your personal inbox
+        subject: `📅 New WhatsApp Meeting Request: ${senderName}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+            <h2 style="color: #25D366;">New Meeting Intent Detected!</h2>
+            <p><strong>Sender Name:</strong> ${senderName}</p>
+            <p><strong>WhatsApp Number:</strong> +${phone}</p>
+            <p><strong>Raw Message:</strong> "${userMessage}"</p>
+            <hr style="border: 0; border-top: 1px solid #eeeeee;" />
+            <p style="font-size: 12px; color: #777777;"><em>This notification was securely routed via HTTP API.</em></p>
+          </div>
+        `,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+      },
+    );
+    console.log("📨 Email notification successfully delivered to your inbox!");
+  } catch (error) {
+    console.error("❌ Failed to transmit notification email via HTTP:");
+    if (error.response) {
+      console.error(JSON.stringify(error.response.data, null, 2));
+    } else {
+      console.error(error.message);
+    }
+  }
+}
 
 async function sendWhatsappMessage(to, text) {
   try {
-    // Ensure the phone number is just digits, no plus signs or spaces
     const cleanPhone = String(to).replace(/\D/g, "");
-
-    // Force Gemini's text into a completely clean, flat string
     const cleanText = String(text)
-      .replace(/[\r\n]+/g, " ") // Flatten line breaks into single spaces
-      .replace(/"/g, '\\"') // Escape double quotes
+      .replace(/[\r\n]+/g, " ")
+      .replace(/"/g, '\\"')
       .trim();
 
     console.log(`Sending sanitized text to ${cleanPhone}: "${cleanText}"`);
@@ -38,9 +65,7 @@ async function sendWhatsappMessage(to, text) {
         messaging_product: "whatsapp",
         to: cleanPhone,
         type: "text",
-        text: {
-          body: cleanText,
-        },
+        text: { body: cleanText },
       },
       {
         headers: {
@@ -63,7 +88,7 @@ async function sendWhatsappMessage(to, text) {
 const app = express();
 app.use(express.json());
 
-// --- 1. WEBHOOK VERIFICATION (GET HANDLER) ---
+// --- WEBHOOK VERIFICATION (GET HANDLER) ---
 app.get("/webhook", (req, res) => {
   const mode = req.query["hub.mode"];
   const token = req.query["hub.verify_token"];
@@ -71,36 +96,26 @@ app.get("/webhook", (req, res) => {
 
   const MY_VERIFY_TOKEN = "your_secret_token_here";
 
-  console.log("=== WEBHOOK VERIFICATION ATTEMPT ===");
-  console.log("Received Token:", token);
-
   if (mode === "subscribe" && token === MY_VERIFY_TOKEN) {
-    console.log("--- VERIFICATION SUCCESSFUL! ---");
     return res.status(200).send(challenge);
   } else {
-    console.log("--- VERIFICATION FAILED: Token Mismatch ---");
     return res.sendStatus(403);
   }
 });
 
-// --- 2. OPTIMIZED: MESSAGE RECEIVER (POST HANDLER) ---
+// --- MESSAGE RECEIVER (POST HANDLER) ---
 app.post("/webhook", async (req, res) => {
   try {
-    console.log("INCOMING WEBHOOK BODY:", JSON.stringify(req.body, null, 2));
-
     const entry = req.body?.entry?.[0];
     const change = entry?.changes?.[0];
     const value = change?.value;
 
-    // Immediately ignore status updates (delivered, read receipts)
     if (value?.statuses && !value?.messages) {
-      console.log("Ignored status receipt payload.");
       return res.sendStatus(200);
     }
 
     const message = value?.messages?.[0];
     if (!message) {
-      console.log("Webhook received, but no message object found.");
       return res.sendStatus(200);
     }
 
@@ -108,7 +123,6 @@ app.post("/webhook", async (req, res) => {
     const userMessage = message.text?.body || message.body;
 
     if (!userMessage) {
-      console.log("Message object found, but text body was empty.");
       return res.sendStatus(200);
     }
 
@@ -117,7 +131,7 @@ app.post("/webhook", async (req, res) => {
       `★★★ PARSED SUCCESS ★★★ From: ${senderName} (${phone}) | Msg: ${userMessage}`,
     );
 
-    // --- MEETING KEYWORD FILTER & EMAIL TRIGGER ---
+    // --- MEETING KEYWORD FILTER ---
     const lowerMessage = userMessage.toLowerCase();
     const keywords = [
       "meet",
@@ -132,46 +146,11 @@ app.post("/webhook", async (req, res) => {
     );
 
     if (wantsToMeet) {
-      console.log(
-        `🚨 Meeting intent detected from ${senderName}. Sending email alert...`,
-      );
-
-      const mailOptions = {
-        from: process.env.MY_EMAIL_ADDRESS,
-        to: process.env.MY_EMAIL_ADDRESS, // Sends the message directly back to your own inbox
-        subject: `📅 New WhatsApp Meeting Request: ${senderName}`,
-        html: `
-          <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
-            <h2 style="color: #25D366;">New Meeting Intent Detected!</h2>
-            <p><strong>Sender Name:</strong> ${senderName}</p>
-            <p><strong>WhatsApp Number:</strong> +${phone}</p>
-            <p><strong>Raw Message:</strong> "${userMessage}"</p>
-            <hr style="border: 0; border-top: 1px solid #eeeeee;" />
-            <p style="font-size: 12px; color: #777777;"><em>This notification was auto-generated by your WhatsApp Bot backend.</em></p>
-          </div>
-        `,
-      };
-
-      // Fire and forget email block so it doesn't slow down the response loop
-      transporter
-        .sendMail(mailOptions)
-        .then(() =>
-          console.log(
-            "📨 Email notification successfully routed to your inbox.",
-          ),
-        )
-        .catch((err) =>
-          console.error(
-            "❌ Failed to transmit notification email:",
-            err.message,
-          ),
-        );
+      // Fire the safe HTTP request instead of the legacy SMTP port configuration
+      sendNotificationEmail(senderName, phone, userMessage);
     }
 
-    // Acknowledge Meta immediately to prevent timeout retries
     res.sendStatus(200);
-
-    // Pass the cleaned arguments to your background worker
     processAIResponse(phone, userMessage);
   } catch (error) {
     console.error("Critical error inside Webhook Router:", error.message);
@@ -181,22 +160,14 @@ app.post("/webhook", async (req, res) => {
   }
 });
 
-// Helper function to handle the long-running AI generation and messaging
 async function processAIResponse(phone, userMessage) {
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3.1-flash-lite",
-      contents: `
-You are Dickson's WhatsApp AI assistant.
-Be concise and friendly.
-
-User: ${userMessage}
-`,
+      contents: `You are Dickson's WhatsApp AI assistant. Concise and friendly.\nUser: ${userMessage}`,
     });
 
     const aiReply = response.text ?? "Sorry, I couldn't generate a response.";
-    console.log("AI Reply:", aiReply);
-
     await sendWhatsappMessage(phone, aiReply);
   } catch (error) {
     console.error("AI Processing Error:", error.message);
