@@ -55,21 +55,25 @@ app.use(express.json());
 // --- 1. ADDED: WEBHOOK VERIFICATION (GET HANDLER) ---
 // Meta uses this to verify your server when you set up the Webhook in the App Dashboard
 app.get("/webhook", (req, res) => {
+  // Meta sends these query parameters to verify your server
   const mode = req.query["hub.mode"];
   const token = req.query["hub.verify_token"];
   const challenge = req.query["hub.challenge"];
 
-  // Replace "YOUR_VERIFY_TOKEN" with a secure string you set in the Meta Developer Portal
-  const VERIFY_TOKEN = process.env.VERIFY_TOKEN || "YOUR_VERIFY_TOKEN";
+  // Your personal secret verification token (Make sure this matches what you type into Meta!)
+  const MY_VERIFY_TOKEN = "your_secret_token_here"; 
 
-  if (mode && token) {
-    if (mode === "subscribe" && token === VERIFY_TOKEN) {
-      console.log("WEBHOOK_VERIFIED");
-      return res.status(200).send(challenge);
-    }
+  console.log("=== WEBHOOK VERIFICATION ATTEMPT ===");
+  console.log("Received Token:", token);
+
+  if (mode === "subscribe" && token === MY_VERIFY_TOKEN) {
+    console.log("--- VERIFICATION SUCCESSFUL! ---");
+    // CRITICAL: You must return the raw challenge string as plain text
+    return res.status(200).send(challenge);
+  } else {
+    console.log("--- VERIFICATION FAILED: Token Mismatch ---");
     return res.sendStatus(403);
   }
-  res.sendStatus(400);
 });
 
 // --- 2. OPTIMIZED: MESSAGE RECEIVER (POST HANDLER) ---
