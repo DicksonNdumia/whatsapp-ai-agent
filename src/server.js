@@ -13,7 +13,11 @@ const ai = new GoogleGenAI({
 
 async function sendEmailSummary(summary) {
   try {
-    await axios.post(
+    console.log("📧 Preparing summary email...");
+    console.log("📧 Recipient:", process.env.MY_EMAIL_ADDRESS);
+    console.log("📧 Summary length:", summary.length);
+
+    const response = await axios.post(
       "https://api.resend.com/emails",
       {
         from: "WhatsApp Bot <onboarding@resend.dev>",
@@ -54,9 +58,10 @@ async function sendEmailSummary(summary) {
       },
     );
 
-    //console.log("📧 Daily summary email sent.");
+    console.log("📧 Resend accepted email request.");
+    console.log("📧 Response:", response.data);
   } catch (error) {
-    console.error("Failed to send daily summary email:");
+    console.error("❌ Failed to send daily summary email:");
 
     if (error.response) {
       console.error(JSON.stringify(error.response.data, null, 2));
@@ -67,25 +72,32 @@ async function sendEmailSummary(summary) {
 }
 
 async function generateDailySummary() {
-  const messages = await pool.query(`
-    SELECT sender_name, phone, content
-    FROM messages
-    WHERE created_at >= CURRENT_DATE
-AND created_at < CURRENT_DATE + INTERVAL '1 day'
-  `);
+  try {
+    console.log("🕕 Starting daily summary job...");
 
-  if (messages.rows.length === 0) {
-    //console.log("No messages today.");
-    return;
-  }
+    const messages = await pool.query(`
+      SELECT sender_name, phone, content
+      FROM messages
+      WHERE created_at >= CURRENT_DATE
+      AND created_at < CURRENT_DATE + INTERVAL '1 day'
+    `);
 
-  const conversationText = messages.rows
-    .map((m) => `${m.sender_name} (${m.phone}): ${m.content}`)
-    .join("\n");
+    console.log(`📨 Messages found: ${messages.rows.length}`);
 
-  const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
-    contents: `
+    if (messages.rows.length === 0) {
+      console.log("📭 No messages today.");
+      return;
+    }
+
+    const conversationText = messages.rows
+      .map((m) => `${m.sender_name} (${m.phone}): ${m.content}`)
+      .join("\n");
+
+    console.log(`📝 Conversation text length: ${conversationText.length}`);
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: `
 Create a concise business summary.
 
 For each person:
@@ -103,14 +115,26 @@ Messages:
 
 ${conversationText}
 `,
-  });
+    });
 
-  const summary = response.text ?? "No summary generated.";
+    const summary = response.text ?? "No summary generated.";
 
-  // Send to Email
-  await sendEmailSummary(summary);
+    console.log(`📊 Summary length: ${summary.length}`);
+    console.log("📊 Generated Summary:");
+    console.log(summary);
 
-  //console.log("✅ Daily summary sent.");
+    await sendEmailSummary(summary);
+
+    console.log("✅ Daily summary email sent.");
+  } catch (error) {
+    console.error("❌ Daily summary job failed:");
+
+    if (error.response) {
+      console.error(JSON.stringify(error.response.data, null, 2));
+    } else {
+      console.error(error.message);
+    }
+  }
 }
 cron.schedule("0 18 * * *", async () => {
   await generateDailySummary();
@@ -251,6 +275,11 @@ app.post("/webhook", async (req, res) => {
 `,
       [phone, senderName, userMessage],
     );
+    console.log("💾 Message saved:", {
+      senderName,
+      phone,
+      userMessage,
+    });
 
     res.sendStatus(200);
     processAIResponse(phone, userMessage);
