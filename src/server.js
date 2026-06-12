@@ -136,6 +136,7 @@ ${conversationText}
     }
   }
 }
+
 cron.schedule("0 18 * * *", async () => {
   await generateDailySummary();
 });
