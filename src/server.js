@@ -213,6 +213,19 @@ async function sendWhatsappMessage(to, text) {
 const app = express();
 app.use(express.json());
 
+app.get("/test-summary", async (req, res) => {
+  try {
+    console.log("🧪 Manual summary test triggered");
+
+    await generateDailySummary();
+
+    res.send("Summary job executed successfully.");
+  } catch (error) {
+    console.error("❌ Test summary failed:", error);
+    res.status(500).send("Summary job failed.");
+  }
+});
+
 app.get("/webhook", (req, res) => {
   const mode = req.query["hub.mode"];
   const token = req.query["hub.verify_token"];
