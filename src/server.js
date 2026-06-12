@@ -98,23 +98,20 @@ async function generateDailySummary() {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: `
-Create a business owner report.
+Create a concise business summary.
 
-For each contact:
+For each person:
 - Name
-- Phone number
-- Conversation summary
-- Meeting requests
-- Potential business opportunities
-- Recommended next action
+- Main topics discussed
+- Any meeting requests
+- Any follow-up needed
 
-Then provide:
+At the end provide:
+- Total conversations
+- People requiring follow-up
+- Important opportunities
 
-1. Total contacts
-2. Total messages
-3. High-priority follow-ups
-4. Leads that may become clients
-5. Overall business insights
+Messages:
 
 ${conversationText}
 `,
