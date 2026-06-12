@@ -13,10 +13,6 @@ const ai = new GoogleGenAI({
 
 async function sendEmailSummary(summary) {
   try {
-    console.log("📧 Preparing summary email...");
-    console.log("📧 Recipient:", process.env.MY_EMAIL_ADDRESS);
-    console.log("📧 Summary length:", summary.length);
-
     const response = await axios.post(
       "https://api.resend.com/emails",
       {
@@ -57,9 +53,6 @@ async function sendEmailSummary(summary) {
         },
       },
     );
-
-    console.log("📧 Resend accepted email request.");
-    console.log("📧 Response:", response.data);
   } catch (error) {
     console.error("❌ Failed to send daily summary email:");
 
@@ -73,8 +66,6 @@ async function sendEmailSummary(summary) {
 
 async function generateDailySummary() {
   try {
-    console.log("🕕 Starting daily summary job...");
-
     const messages = await pool.query(`
       SELECT sender_name, phone, content
       FROM messages
@@ -82,18 +73,13 @@ async function generateDailySummary() {
       AND created_at < CURRENT_DATE + INTERVAL '1 day'
     `);
 
-    console.log(`📨 Messages found: ${messages.rows.length}`);
-
     if (messages.rows.length === 0) {
-      console.log("📭 No messages today.");
       return;
     }
 
     const conversationText = messages.rows
       .map((m) => `${m.sender_name} (${m.phone}): ${m.content}`)
       .join("\n");
-
-    console.log(`📝 Conversation text length: ${conversationText.length}`);
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
@@ -119,13 +105,7 @@ ${conversationText}
 
     const summary = response.text ?? "No summary generated.";
 
-    console.log(`📊 Summary length: ${summary.length}`);
-    console.log("📊 Generated Summary:");
-    console.log(summary);
-
     await sendEmailSummary(summary);
-
-    console.log("✅ Daily summary email sent.");
   } catch (error) {
     console.error("❌ Daily summary job failed:");
 
@@ -216,8 +196,6 @@ app.use(express.json());
 
 app.get("/test-summary", async (req, res) => {
   try {
-    console.log("🧪 Manual summary test triggered");
-
     await generateDailySummary();
 
     res.send("Summary job executed successfully.");
@@ -289,11 +267,6 @@ app.post("/webhook", async (req, res) => {
 `,
       [phone, senderName, userMessage],
     );
-    console.log("💾 Message saved:", {
-      senderName,
-      phone,
-      userMessage,
-    });
 
     res.sendStatus(200);
     processAIResponse(phone, userMessage);
