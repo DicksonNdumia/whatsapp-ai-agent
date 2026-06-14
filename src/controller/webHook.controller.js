@@ -3,11 +3,12 @@ import { sendMeetingNotification } from "../services/email.service.js";
 import { wantsMeeting } from "../services/meeting.detector.js";
 import { saveMessage } from "../services/message.service.js";
 import { sendWhatsappMessage } from "../services/whatsApp.service.js";
-import { isPortfolioQuery, handlePortfolioQuery } from "../services/portfolioService.js";
+import { handlePortfolioQuery } from "../services/portfolioService.js";
+import { isPortfolioQuery } from "../utils/portfolioKeywords.js";
 
 /**
  * Handle incoming WhatsApp messages
- * 
+ *
  * Flow:
  * 1. Extract message from webhook payload
  * 2. Save message to database
