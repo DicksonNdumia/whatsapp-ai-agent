@@ -1,134 +1,111 @@
-# WhatsApp AI Assistant with Gemini & Meeting Notifications
+# WhatsApp AI Agent
 
-A WhatsApp AI Assistant built using **Node.js**, **Express**, **Google Gemini**, **WhatsApp Cloud API**, and **Resend Email API**.
+A WhatsApp AI Agent built with **Node.js** and **Express** that automatically replies to WhatsApp messages using AI-powered responses.
 
-The assistant can:
+Currently powered by **Google Gemini** and **WhatsApp Cloud API**, this application detects meeting intents and sends email notifications for meeting requests.
 
-- Receive WhatsApp messages via webhook.
-- Generate AI-powered responses using Gemini.
-- Reply directly on WhatsApp.
-- Detect meeting-related intents.
-- Send email notifications when users request meetings, calls, or appointments.
+## 📋 Features
 
----
+### 🤖 AI-Powered Responses
+- Receive WhatsApp messages via webhook
+- Generate intelligent responses using Google Gemini API
+- Reply automatically on WhatsApp
 
-## Features
+### 📅 Meeting Intent Detection
+- Automatically detects meeting-related keywords:
+  - `meet`, `meeting`, `schedule`, `appointment`, `call`, `discuss`
+- Sends email notifications for meeting requests
 
-### AI-Powered WhatsApp Chat
+### 📧 Email Notifications
+- Sends meeting request alerts to your email inbox via Resend
+- Includes sender name, WhatsApp number, and original message
 
-Incoming WhatsApp messages are processed by Google's Gemini model and responded to automatically.
-
-### Meeting Intent Detection
-
-The assistant scans messages for keywords such as:
-
-- meet
-- meeting
-- schedule
-- appointment
-- call
-- discuss
-
-When detected, an email notification is sent to the owner.
-
-### Email Notifications
-
-Meeting requests are forwarded to your email inbox using Resend.
-
-Notification email includes:
-
-- Sender Name
-- WhatsApp Number
-- Original Message
-
-### Secure WhatsApp Integration
-
-Uses the Meta WhatsApp Cloud API to:
-
-- Receive messages
-- Send responses
-- Verify webhook subscriptions
+### 🔐 Secure Integration
+- Meta WhatsApp Cloud API for reliable message delivery
+- Webhook verification for security
+- Environment-based configuration
 
 ---
 
-# Tech Stack
+## 🛠 Tech Stack
 
-- Node.js
-- Express.js
-- Axios
-- Google Gemini API
-- WhatsApp Cloud API
-- Resend Email API
-- dotenv
+- **Runtime:** Node.js
+- **Framework:** Express.js
+- **HTTP Client:** Axios
+- **AI Model:** Google Gemini API
+- **Messaging:** WhatsApp Cloud API (Meta)
+- **Email Service:** Resend Email API
+- **Configuration:** dotenv
 
 ---
 
-# Project Structure
+## 📁 Project Structure
 
-```bash
-project/
-│
+```
+whatsapp-ai-agent/
 ├── server.js
-├── .env
+├── .env (not committed)
+├── .gitignore
 ├── package.json
 └── README.md
 ```
 
 ---
 
-# Installation
+## ⚙️ Installation
 
-## 1. Clone Repository
+### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/whatsapp-ai-assistant.git
-
-cd whatsapp-ai-assistant
+git clone https://github.com/DicksonNdumia/whatsapp-ai-agent.git
+cd whatsapp-ai-agent
 ```
 
-## 2. Install Dependencies
+### 2. Install Dependencies
 
 ```bash
 npm install
 ```
 
-Required packages:
+Or install specific packages:
 
 ```bash
 npm install express dotenv axios @google/genai
 ```
 
----
+### 3. Create Environment File
 
-# Environment Variables
-
-Create a `.env` file:
+Create a `.env` file in the root directory:
 
 ```env
+# Google Gemini API
 GEMINI_API_KEY=your_gemini_api_key
 
+# WhatsApp Cloud API
 WHATSAPP_TOKEN=your_whatsapp_access_token
 PHONE_NUMBER_ID=your_phone_number_id
 
+# Resend Email API
 RESEND_API_KEY=your_resend_api_key
 MY_EMAIL_ADDRESS=your_email@example.com
+
+# Server Configuration
+PORT=3000
 ```
 
----
+### 4. Configure Webhook Verification
 
-# Meta Webhook Verification
-
-Inside the code:
+In `server.js`, set your webhook verification token:
 
 ```javascript
 const MY_VERIFY_TOKEN = "your_secret_token_here";
 ```
 
-Use the same value when configuring the WhatsApp webhook in the Meta Developer Dashboard.
+Use the same token when configuring the WhatsApp webhook in the [Meta Developer Dashboard](https://developers.facebook.com).
 
 ---
 
-# Running the Application
+## 🚀 Running the Application
 
 Start the server:
 
@@ -136,7 +113,7 @@ Start the server:
 node server.js
 ```
 
-or
+Or using npm:
 
 ```bash
 npm start
@@ -150,104 +127,192 @@ Server running on port 3000
 
 ---
 
-# Webhook Endpoints
+## 🔗 API Endpoints
 
-## Verification Endpoint
+### GET `/webhook` - Webhook Verification
 
-```http
-GET /webhook
-```
+Used by Meta to verify webhook ownership during setup.
 
-Used by Meta to verify ownership of the webhook.
-
----
-
-## Message Endpoint
-
-```http
-POST /webhook
-```
-
-Receives incoming WhatsApp messages and triggers:
-
-1. Message parsing
-2. Meeting intent detection
-3. AI response generation
-4. WhatsApp reply delivery
+**Query Parameters:**
+- `hub.mode` - Verification mode
+- `hub.challenge` - Challenge token
+- `hub.verify_token` - Your verification token
 
 ---
 
-# Example Workflow
+### POST `/webhook` - Message Reception
 
-### User Message
+Receives incoming WhatsApp messages and processes them.
 
-```text
+**Workflow:**
+1. Parse incoming message from WhatsApp
+2. Detect meeting intent (keywords analysis)
+3. Generate AI response using Gemini
+4. Send email notification (if meeting intent detected)
+5. Reply to user on WhatsApp
+
+**Payload:**
+```json
+{
+  "object": "whatsapp_business_account",
+  "entry": [{
+    "changes": [{
+      "value": {
+        "messages": [{
+          "from": "1234567890",
+          "body": "User message here"
+        }]
+      }
+    }]
+  }]
+}
+```
+
+---
+
+## 📝 Example Workflow
+
+### User sends:
+```
 Hello, I'd like to schedule a meeting next week.
 ```
 
-### System Actions
+### System processes:
+1. ✅ Message received via webhook
+2. 🎯 Meeting keyword detected
+3. 📧 Email notification sent to owner
+4. 🤖 Gemini generates AI response
+5. 💬 Response sent to user on WhatsApp
 
-1. WhatsApp sends webhook event.
-2. Meeting keyword detected.
-3. Email notification sent.
-4. Gemini generates response.
-5. AI response returned to user on WhatsApp.
+### User receives:
+```
+Thank you for your message! I'll help you schedule a meeting. 
+Please provide more details about your preferred date and time.
+```
 
 ---
 
-# Example Notification Email
+## 📮 Example Notification Email
 
-```text
-New WhatsApp Meeting Request
+```
+Subject: New WhatsApp Meeting Request
+
+---
 
 Sender Name: John Doe
 WhatsApp Number: +254700000000
 
 Message:
 "I'd like to schedule a meeting next week."
+
+---
+Sent via WhatsApp AI Agent
 ```
 
 ---
 
-# Deployment
+## 🌐 Deployment
 
-You can deploy this application on:
+This application can be deployed on:
 
-- Render
-- Railway
-- VPS
-- DigitalOcean
-- AWS EC2
+- **Render** - Recommended for quick setup
+- **Railway**
+- **DigitalOcean App Platform**
+- **AWS EC2**
+- **Heroku** (legacy)
+- **Self-hosted VPS**
 
-For Render:
+### Deploy to Render (Recommended)
 
-1. Push code to GitHub.
-2. Create a new Web Service.
-3. Connect repository.
-4. Add environment variables.
-5. Deploy.
-
----
-
-# Security Notes
-
-- Never commit your `.env` file.
-- Keep API keys private.
-- Restrict webhook access where possible.
-- Use HTTPS in production.
+1. Push code to GitHub
+2. Go to [Render Dashboard](https://dashboard.render.com)
+3. Create a new **Web Service**
+4. Connect your GitHub repository
+5. Add environment variables in Render settings
+6. Deploy
 
 ---
 
-# Future Improvements
+## 🔒 Security Best Practices
 
-- Conversation memory
-- Appointment booking integration
-- CRM integration
-- Lead qualification
-- Multi-language support
-- Voice message transcription
-- Calendar scheduling automation
+⚠️ **Important:**
+- ❌ Never commit `.env` file to version control
+- ❌ Never share API keys publicly
+- ✅ Keep all credentials private
+- ✅ Use HTTPS in production
+- ✅ Validate webhook signatures
+- ✅ Restrict webhook access where possible
+- ✅ Rotate API keys regularly
+
+Add to `.gitignore`:
+```
+.env
+node_modules/
+.DS_Store
+*.log
+```
 
 ---
 
-Built with ❤️ using Gemini, WhatsApp Cloud API, and Node.js.
+## 🔑 Getting API Keys
+
+### Google Gemini API
+1. Visit [Google AI Studio](https://aistudio.google.com/)
+2. Create a new API key
+3. Add to `GEMINI_API_KEY`
+
+### WhatsApp Cloud API
+1. Go to [Meta Developer Dashboard](https://developers.facebook.com)
+2. Create a WhatsApp Business Account
+3. Get access token and phone number ID
+4. Add to `WHATSAPP_TOKEN` and `PHONE_NUMBER_ID`
+
+### Resend Email API
+1. Visit [Resend Console](https://resend.com)
+2. Create an API key
+3. Add to `RESEND_API_KEY`
+
+---
+
+## 🚧 Future Enhancements
+
+- [ ] Conversation memory / context handling
+- [ ] Automatic appointment booking integration
+- [ ] CRM integration
+- [ ] Lead qualification system
+- [ ] Multi-language support
+- [ ] Voice message transcription
+- [ ] Calendar scheduling automation
+- [ ] Admin dashboard
+- [ ] Message analytics and logging
+- [ ] Support for multiple WhatsApp Business Accounts
+
+---
+
+## 📞 Support & Contribution
+
+If you encounter issues or have suggestions:
+
+1. Check existing issues on GitHub
+2. Create a new issue with detailed description
+3. Include environment setup details
+4. Share error logs (without sensitive data)
+
+Contributions are welcome! Feel free to fork and submit pull requests.
+
+---
+
+## 📄 License
+
+This project is open source. Please check for a LICENSE file or specify your preferred license.
+
+---
+
+## ❤️ Built with
+
+- Node.js
+- Google Gemini
+- WhatsApp Cloud API
+- Resend Email Service
+
+**Built with ❤️ for WhatsApp automation**
