@@ -8,10 +8,10 @@ export const ABOUT_ME = {
   title: "Full Stack Developer",
   bio: "I'm a passionate full stack developer specializing in building scalable applications and AI integrations. I create solutions that make a real impact using modern technologies.",
   location: "Kenya",
-  email: "ndumiadickson3@gmail.com",
+  email: "dicksonndumia19@gmail.com",
   github: "https://github.com/DicksonNdumia",
-  linkedin: "https://linkedin.com/in/dickson-ndumia",
-  portfolio: "https://dickson-portfolio.vercel.app",
+  linkedin: "https://www.linkedin.com/in/dickson-ndumia-a31510346/",
+  portfolio: "https://portifolio-six-beryl.vercel.app/",
   skills: [
     "JavaScript/Node.js",
     "React.js",
@@ -26,6 +26,7 @@ export const ABOUT_ME = {
     "Database Design",
     "Cloud Deployment",
     "Git & Version Control",
+    "Docker",
     "Agile Development",
   ],
   services: [
