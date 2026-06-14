@@ -1,4 +1,12 @@
 import axios from "axios";
+function escapeHtml(text = "") {
+  return text
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&`#39`;");
+}
 
 export async function sendEmailSummary(summary) {
   try {
@@ -24,7 +32,7 @@ export async function sendEmailSummary(summary) {
                 white-space:pre-wrap;
               "
             >
-              ${summary}
+              ${escapeHtml(summary)}
             </div>
 
             <hr />
@@ -40,6 +48,7 @@ export async function sendEmailSummary(summary) {
           Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
           "Content-Type": "application/json",
         },
+        timeout: 1000,
       },
     );
   } catch (error) {

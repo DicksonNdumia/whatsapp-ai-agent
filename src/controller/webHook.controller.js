@@ -16,6 +16,10 @@ export async function handleWebhook(req, res) {
 
     const phone = message.from;
     const text = message.text?.body;
+    if (!text) {
+      await saveMessage(phone, senderName, "[non-text message]");
+      return res.sendStatus(200);
+    }
 
     const senderName = value?.contacts?.[0]?.profile?.name || "Unknown User";
 
@@ -26,6 +30,7 @@ export async function handleWebhook(req, res) {
     }
     const reply = await generateReply(text);
     await sendWhatsappMessage(phone, reply);
+    res.sendStatus(200);
   } catch (error) {
     console.error(error);
     res.sendStatus(200);
@@ -37,7 +42,7 @@ export async function verifyWebhook(req, res) {
   const token = req.query["hub.verify_token"];
   const challenge = req.query["hub.challenge"];
 
-  const MY_VERIFY_TOKEN = "your_secret_token_here";
+  const MY_VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 
   if (mode === "subscribe" && token === MY_VERIFY_TOKEN) {
     return res.status(200).send(challenge);

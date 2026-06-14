@@ -1,12 +1,15 @@
 import pool from "../config/db.js";
 
 export async function saveMessage(phone, senderName, content) {
+  if (!phone || !senderName) {
+    throw new Error("Phone and senderName are required");
+  }
   await pool.query(
     `
     INSERT INTO messages(phone, sender_name, content)
     VALUES ($1,$2,$3)
     `,
-    [phone, senderName, content],
+    [phone, senderName, content || ""],
   );
 }
 

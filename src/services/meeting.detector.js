@@ -1,4 +1,7 @@
 export function wantsMeeting(message) {
+  if (!message) {
+    return false;
+  }
   const keywords = [
     "meet",
     "meeting",
