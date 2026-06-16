@@ -7,7 +7,7 @@ export async function sendMeetingNotification(senderName, phone, message) {
       {
         from: "WhatsApp Bot <onboarding@resend.dev>",
         to: process.env.MY_EMAIL_ADDRESS,
-        subject: `📅 New WhatsApp Meeting Request: ${senderName}`,
+        subject: `New WhatsApp Meeting Request: ${senderName}`,
         html: `
           <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
             <h2 style="color: #25D366;">New Meeting Intent Detected!</h2>

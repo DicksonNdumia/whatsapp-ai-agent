@@ -9,6 +9,7 @@ export function wantsMeeting(message) {
     "appointment",
     "call",
     "discuss",
+    "send",
   ];
 
   return keywords.some((keyword) => message.toLowerCase().includes(keyword));

@@ -1,21 +1,20 @@
-/**
- * About Me Data
- * Central location for personal information and professional details
- */
-
 export const ABOUT_ME = {
   name: "Dickson Ndumia",
   title: "Full Stack Developer",
   bio: "I'm a passionate full stack developer specializing in building scalable applications and AI integrations. I create solutions that make a real impact using modern technologies.",
   location: "Kenya",
   email: "dicksonndumia19@gmail.com",
+  cv: "https://googleDrive",
   github: "https://github.com/DicksonNdumia",
   linkedin: "https://www.linkedin.com/in/dickson-ndumia-a31510346/",
   portfolio: "https://portifolio-six-beryl.vercel.app/",
   skills: [
     "JavaScript/Node.js",
     "React.js",
+    "Angular",
+    "Drizzle-orm",
     "Express.js",
+    "Docker",
     "MongoDB",
     "PostgreSQL",
     "REST APIs",

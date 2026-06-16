@@ -4,23 +4,27 @@ A WhatsApp AI Agent built with **Node.js** and **Express** that automatically re
 
 Currently powered by **Google Gemini** and **WhatsApp Cloud API**, this application detects meeting intents and sends email notifications for meeting requests.
 
-## 📋 Features
+## Features
 
-### 🤖 AI-Powered Responses
+### AI-Powered Responses
+
 - Receive WhatsApp messages via webhook
 - Generate intelligent responses using Google Gemini API
 - Reply automatically on WhatsApp
 
-### 📅 Meeting Intent Detection
+### Meeting Intent Detection
+
 - Automatically detects meeting-related keywords:
   - `meet`, `meeting`, `schedule`, `appointment`, `call`, `discuss`
 - Sends email notifications for meeting requests
 
-### 📧 Email Notifications
+### Email Notifications
+
 - Sends meeting request alerts to your email inbox via Resend
 - Includes sender name, WhatsApp number, and original message
 
-### 🔐 Secure Integration
+### Secure Integration
+
 - Meta WhatsApp Cloud API for reliable message delivery
 - Webhook verification for security
 - Environment-based configuration
@@ -39,7 +43,7 @@ Currently powered by **Google Gemini** and **WhatsApp Cloud API**, this applicat
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 whatsapp-ai-agent/
@@ -52,7 +56,7 @@ whatsapp-ai-agent/
 
 ---
 
-## ⚙️ Installation
+## Installation
 
 ### 1. Clone the Repository
 
@@ -105,7 +109,7 @@ Use the same token when configuring the WhatsApp webhook in the [Meta Developer 
 
 ---
 
-## 🚀 Running the Application
+## Running the Application
 
 Start the server:
 
@@ -116,7 +120,7 @@ node server.js
 Or using npm:
 
 ```bash
-npm start
+npm run dev
 ```
 
 Expected output:
@@ -127,13 +131,14 @@ Server running on port 3000
 
 ---
 
-## 🔗 API Endpoints
+## API Endpoints
 
 ### GET `/webhook` - Webhook Verification
 
 Used by Meta to verify webhook ownership during setup.
 
 **Query Parameters:**
+
 - `hub.mode` - Verification mode
 - `hub.challenge` - Challenge token
 - `hub.verify_token` - Your verification token
@@ -145,6 +150,7 @@ Used by Meta to verify webhook ownership during setup.
 Receives incoming WhatsApp messages and processes them.
 
 **Workflow:**
+
 1. Parse incoming message from WhatsApp
 2. Detect meeting intent (keywords analysis)
 3. Generate AI response using Gemini
@@ -152,47 +158,57 @@ Receives incoming WhatsApp messages and processes them.
 5. Reply to user on WhatsApp
 
 **Payload:**
+
 ```json
 {
   "object": "whatsapp_business_account",
-  "entry": [{
-    "changes": [{
-      "value": {
-        "messages": [{
-          "from": "1234567890",
-          "body": "User message here"
-        }]
-      }
-    }]
-  }]
+  "entry": [
+    {
+      "changes": [
+        {
+          "value": {
+            "messages": [
+              {
+                "from": "1234567890",
+                "body": "User message here"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
 }
 ```
 
 ---
 
-## 📝 Example Workflow
+## Example Workflow
 
 ### User sends:
+
 ```
 Hello, I'd like to schedule a meeting next week.
 ```
 
 ### System processes:
-1. ✅ Message received via webhook
-2. 🎯 Meeting keyword detected
-3. 📧 Email notification sent to owner
-4. 🤖 Gemini generates AI response
-5. 💬 Response sent to user on WhatsApp
+
+1.  Message received via webhook
+2.  Meeting keyword detected
+3.  Email notification sent to owner
+4.  Gemini generates AI response
+5.  Response sent to user on WhatsApp
 
 ### User receives:
+
 ```
-Thank you for your message! I'll help you schedule a meeting. 
+Thank you for your message! I'll help you schedule a meeting.
 Please provide more details about your preferred date and time.
 ```
 
 ---
 
-## 📮 Example Notification Email
+## Example Notification Email
 
 ```
 Subject: New WhatsApp Meeting Request
@@ -211,7 +227,7 @@ Sent via WhatsApp AI Agent
 
 ---
 
-## 🌐 Deployment
+## Deployment
 
 This application can be deployed on:
 
@@ -236,6 +252,7 @@ This application can be deployed on:
 ## 🔒 Security Best Practices
 
 ⚠️ **Important:**
+
 - ❌ Never commit `.env` file to version control
 - ❌ Never share API keys publicly
 - ✅ Keep all credentials private
@@ -245,6 +262,7 @@ This application can be deployed on:
 - ✅ Rotate API keys regularly
 
 Add to `.gitignore`:
+
 ```
 .env
 node_modules/
@@ -254,27 +272,30 @@ node_modules/
 
 ---
 
-## 🔑 Getting API Keys
+## Getting API Keys
 
 ### Google Gemini API
+
 1. Visit [Google AI Studio](https://aistudio.google.com/)
 2. Create a new API key
 3. Add to `GEMINI_API_KEY`
 
 ### WhatsApp Cloud API
+
 1. Go to [Meta Developer Dashboard](https://developers.facebook.com)
 2. Create a WhatsApp Business Account
 3. Get access token and phone number ID
 4. Add to `WHATSAPP_TOKEN` and `PHONE_NUMBER_ID`
 
 ### Resend Email API
+
 1. Visit [Resend Console](https://resend.com)
 2. Create an API key
 3. Add to `RESEND_API_KEY`
 
 ---
 
-## 🚧 Future Enhancements
+## Future Enhancements
 
 - [ ] Conversation memory / context handling
 - [ ] Automatic appointment booking integration
@@ -289,7 +310,7 @@ node_modules/
 
 ---
 
-## 📞 Support & Contribution
+## Support & Contribution
 
 If you encounter issues or have suggestions:
 
@@ -302,17 +323,17 @@ Contributions are welcome! Feel free to fork and submit pull requests.
 
 ---
 
-## 📄 License
+## License
 
 This project is open source. Please check for a LICENSE file or specify your preferred license.
 
 ---
 
-## ❤️ Built with
+## Built with
 
 - Node.js
 - Google Gemini
 - WhatsApp Cloud API
 - Resend Email Service
 
-**Built with ❤️ for WhatsApp automation**
+**Built with for WhatsApp automation**

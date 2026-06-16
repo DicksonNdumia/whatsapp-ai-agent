@@ -6,18 +6,6 @@ import { sendWhatsappMessage } from "../services/whatsApp.service.js";
 import { handlePortfolioQuery } from "../services/portfolioService.js";
 import { isPortfolioQuery } from "../utils/portfolioKeywords.js";
 
-/**
- * Handle incoming WhatsApp messages
- *
- * Flow:
- * 1. Extract message from webhook payload
- * 2. Save message to database
- * 3. Check for meeting intent
- * 4. Check if it's a portfolio query (NEW)
- * 5. If portfolio query: return portfolio response (no Gemini call)
- * 6. If not: call Gemini for AI response
- * 7. Send response back to WhatsApp
- */
 export async function handleWebhook(req, res) {
   try {
     const value = req.body?.entry?.[0]?.changes?.[0]?.value;
@@ -64,10 +52,6 @@ export async function handleWebhook(req, res) {
   }
 }
 
-/**
- * Verify WhatsApp webhook
- * Called by Meta when setting up or verifying the webhook
- */
 export async function verifyWebhook(req, res) {
   const mode = req.query["hub.mode"];
   const token = req.query["hub.verify_token"];

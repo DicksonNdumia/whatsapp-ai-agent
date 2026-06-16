@@ -1,8 +1,3 @@
-/**
- * Projects Data
- * Collection of portfolio projects
- */
-
 export const PROJECTS = [
   {
     name: "WhatsApp AI Agent",
@@ -44,7 +39,7 @@ export const PROJECTS = [
     technologies: ["React.js", "TailWind.css"],
   },
   {
-    name: "#D Portfolio",
+    name: "3D Portfolio",
     description: "This is my 3D portfolio that i built using 3js, React.",
     liveLink: "https://threejs-nine-rosy.vercel.app/",
     githubLink: "https://github.com/DICKSON39/threejs.git",
