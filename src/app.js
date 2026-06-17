@@ -6,6 +6,7 @@ import { limiter } from "./middleware/error/helper/limit.js";
 const app = express();
 
 app.use(express.json());
+app.set("trust proxy", true);
 app.use(limiter);
 
 app.use("/webhook", webhookRoutes);
