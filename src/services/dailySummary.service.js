@@ -44,6 +44,7 @@ ${conversationText}
     const summary = response.text ?? "No summary generated.";
 
     await sendEmailSummary(summary);
+    console.log("Summary Generate", summary);
   } catch (error) {
     console.error("❌ Daily summary job failed:");
 
