@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Agent console</title>
+    <style>
+      :root {
+        --page: #f2f1ee;
+        --card: #fff;
+        --ink: #141a22;
+        --muted: #667085;
+        --line: #e3e1db;
+        --accent: #0e7c66;
+        --accent-ink: #fff;
+        --warn: #b45309;
+        --warn-bg: #fdf1e1;
+        --in: #fff;
+        --out: #d8efe7;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --page: #0f1318;
+          --card: #181e26;
+          --ink: #eceae4;
+          --muted: #98a2b3;
+          --line: #2a323d;
+          --accent: #3fc3a4;
+          --accent-ink: #06231c;
+          --warn: #f3b25a;
+          --warn-bg: #2d2112;
+          --in: #1f2630;
+          --out: #164236;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--page);
+        color: var(--ink);
+        font:
+          15px/1.45 ui-sans-serif,
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          sans-serif;
+      }
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        background: var(--page);
+        border-bottom: 1px solid var(--line);
+        padding: 12px 16px 0;
+      }
+      h1 {
+        font-size: 18px;
+        margin: 0 0 10px;
+        letter-spacing: -0.01em;
+      }
+      nav {
+        display: flex;
+        gap: 4px;
+      }
+      nav button {
+        flex: 1;
+        background: none;
+        border: 0;
+        padding: 10px 0;
+        font: inherit;
+        color: var(--muted);
+        border-bottom: 2px solid transparent;
+        cursor: pointer;
+      }
+      nav button[aria-selected="true"] {
+        color: var(--ink);
+        border-color: var(--accent);
+        font-weight: 600;
+      }
+      main {
+        padding: 16px;
+        max-width: 720px;
+        margin: 0 auto;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .stat {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 14px;
+      }
+      .stat b {
+        display: block;
+        font-size: 28px;
+        letter-spacing: -0.02em;
+      }
+      .stat span {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 12px 14px;
+        margin-bottom: 10px;
+      }
+      .card h3 {
+        margin: 0 0 2px;
+        font-size: 15px;
+      }
+      .muted {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+      }
+      .tag {
+        font-size: 12px;
+        padding: 2px 8px;
+        border-radius: 99px;
+        background: var(--warn-bg);
+        color: var(--warn);
+      }
+      button.btn,
+      select,
+      textarea {
+        font: inherit;
+        color: var(--ink);
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 8px 12px;
+      }
+      button.btn.primary {
+        background: var(--accent);
+        color: var(--accent-ink);
+        border-color: var(--accent);
+        font-weight: 600;
+      }
+      button.btn:disabled {
+        opacity: 0.5;
+      }
+      .thread {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin: 12px 0;
+      }
+      .bubble {
+        max-width: 85%;
+        padding: 8px 12px;
+        border-radius: 12px;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        border: 1px solid var(--line);
+      }
+      .bubble.in {
+        background: var(--in);
+        align-self: flex-start;
+      }
+      .bubble.out {
+        background: var(--out);
+        align-self: flex-end;
+      }
+      .bubble small {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+        margin-top: 2px;
+      }
+      .compose {
+        display: flex;
+        gap: 8px;
+        position: sticky;
+        bottom: 0;
+        background: var(--page);
+        padding: 10px 0;
+      }
+      .compose textarea {
+        flex: 1;
+        resize: none;
+      }
+      a.back {
+        color: var(--accent);
+        cursor: pointer;
+      }
+      .empty {
+        color: var(--muted);
+        text-align: center;
+        padding: 32px 0;
+      }
+      :focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Agent console</h1>
+      <nav role="tablist">
+        <button role="tab" data-tab="overview" aria-selected="true">
+          Overview
+        </button>
+        <button role="tab" data-tab="leads" aria-selected="false">Leads</button>
+        <button role="tab" data-tab="chats" aria-selected="false">Chats</button>
+      </nav>
+    </header>
+    <main id="view"></main>
+
+    <script>
+      const view = document.getElementById("view");
+      const tabs = [...document.querySelectorAll("nav button")];
+      let tab = "overview";
+
+      const api = async (path, opts = {}) => {
+        const res = await fetch("/admin/api" + path, {
+          method: opts.method || "GET",
+          headers: opts.body
+            ? { "Content-Type": "application/json" }
+            : undefined,
+          body: opts.body ? JSON.stringify(opts.body) : undefined,
+        });
+        if (!res.ok) throw new Error(res.status + " " + res.statusText);
+        return res.json();
+      };
+
+      function el(tag, props = {}, ...kids) {
+        const n = document.createElement(tag);
+        for (const [k, v] of Object.entries(props)) {
+          if (k === "class") n.className = v;
+          else if (k.startsWith("on")) n.addEventListener(k.slice(2), v);
+          else if (v !== undefined && v !== null && v !== false)
+            n.setAttribute(k, v);
+        }
+        for (const kid of kids.flat()) if (kid != null) n.append(kid);
+        return n;
+      }
+      const fmt = (d) =>
+        new Date(d).toLocaleString([], {
+          dateStyle: "short",
+          timeStyle: "short",
+        });
+      const empty = (t) => el("div", { class: "empty" }, t);
+      const show = (...nodes) => view.replaceChildren(...nodes);
+
+      async function overview() {
+        const o = await api("/overview");
+        const leads = o.leadsByStatus;
+        const stat = (n, label) =>
+          el(
+            "div",
+            { class: "stat" },
+            el("b", {}, String(n)),
+            el("span", {}, label),
+          );
+        const run = el(
+          "button",
+          {
+            class: "btn primary",
+            onclick: async (e) => {
+              e.target.disabled = true;
+              e.target.textContent = "Sending…";
+              try {
+                await api("/summary/run", { method: "POST" });
+                e.target.textContent = "Sent";
+              } catch {
+                e.target.textContent = "Failed";
+              }
+            },
+          },
+          "Send today's summary",
+        );
+        show(
+          el(
+            "div",
+            { class: "grid" },
+            stat(o.messagesToday, "messages today"),
+            stat(leads.new || 0, "new leads"),
+            stat(o.pausedChats, "chats paused"),
+            stat((o.tokens.today / 1000).toFixed(1) + "k", "tokens today"),
+          ),
+          el(
+            "p",
+            { class: "muted" },
+            `Tokens: ${o.tokens.week.toLocaleString()} this week, ${o.tokens.month.toLocaleString()} this month. Queue: ${
+              Object.entries(o.queue)
+                .map(([k, v]) => k + " " + v)
+                .join(", ") || "idle"
+            }.`,
+          ),
+          run,
+        );
+      }
+
+      async function leadsTab() {
+        const leads = await api("/leads");
+        if (!leads.length) return show(empty("No leads yet."));
+        show(
+          ...leads.map((l) =>
+            el(
+              "div",
+              { class: "card" },
+              el(
+                "div",
+                { class: "row" },
+                el("h3", {}, l.name || "Unknown"),
+                el(
+                  "select",
+                  {
+                    "aria-label": "Lead status",
+                    onchange: (e) =>
+                      api("/leads/" + l.id, {
+                        method: "PATCH",
+                        body: { status: e.target.value },
+                      }),
+                  },
+                  ["new", "contacted", "won", "closed"].map((s) =>
+                    el("option", { value: s, selected: s === l.status }, s),
+                  ),
+                ),
+              ),
+              el(
+                "div",
+                { class: "muted" },
+                "+" + l.phone + " · " + fmt(l.updated_at),
+              ),
+              el(
+                "p",
+                {},
+                [
+                  l.project_type,
+                  l.budget && "Budget: " + l.budget,
+                  l.timeline && "Timeline: " + l.timeline,
+                ]
+                  .filter(Boolean)
+                  .join(" · ") || "No details yet",
+              ),
+              l.details ? el("div", { class: "muted" }, l.details) : null,
+            ),
+          ),
+        );
+      }
+
+      async function chatsTab() {
+        const chats = await api("/conversations");
+        if (!chats.length) return show(empty("No conversations yet."));
+        show(
+          ...chats.map((c) =>
+            el(
+              "div",
+              {
+                class: "card",
+                style: "cursor:pointer",
+                tabindex: "0",
+                role: "button",
+                onclick: () => openChat(c),
+                onkeydown: (e) => e.key === "Enter" && openChat(c),
+              },
+              el(
+                "div",
+                { class: "row" },
+                el("h3", {}, c.sender_name || "+" + c.phone),
+                c.paused ? el("span", { class: "tag" }, "paused") : null,
+              ),
+              el(
+                "div",
+                { class: "muted" },
+                (c.last_direction === "out" ? "Bot: " : "") +
+                  (c.last_message || "").slice(0, 90),
+              ),
+            ),
+          ),
+        );
+      }
+
+      async function openChat(c) {
+        const msgs = await api("/conversations/" + c.phone);
+        const thread = el(
+          "div",
+          { class: "thread" },
+          msgs.map((m) =>
+            el(
+              "div",
+              { class: "bubble " + m.direction },
+              m.content,
+              el(
+                "small",
+                {},
+                (m.msg_type === "human" ? "You · " : "") + fmt(m.created_at),
+              ),
+            ),
+          ),
+        );
+        const box = el("textarea", {
+          rows: "2",
+          placeholder: "Reply as yourself (pauses the bot)",
+          "aria-label": "Reply",
+        });
+        const send = el(
+          "button",
+          {
+            class: "btn primary",
+            onclick: async () => {
+              const text = box.value.trim();
+              if (!text) return;
+              send.disabled = true;
+              try {
+                await api("/conversations/" + c.phone + "/reply", {
+                  method: "POST",
+                  body: { text },
+                });
+                openChat({ ...c, paused: true });
+              } catch {
+                send.disabled = false;
+                alert("Send failed");
+              }
+            },
+          },
+          "Send",
+        );
+        const toggle = el(
+          "button",
+          {
+            class: "btn",
+            onclick: async () => {
+              await api(
+                "/conversations/" + c.phone + (c.paused ? "/resume" : "/pause"),
+                { method: "POST" },
+              );
+              openChat({ ...c, paused: !c.paused });
+            },
+          },
+          c.paused ? "Resume bot" : "Pause bot",
+        );
+        show(
+          el(
+            "a",
+            { class: "back", onclick: () => select("chats") },
+            "‹ All chats",
+          ),
+          el(
+            "div",
+            { class: "row", style: "margin-top:8px" },
+            el(
+              "h3",
+              { style: "margin:0" },
+              (c.sender_name || "") + " +" + c.phone,
+            ),
+            toggle,
+          ),
+          thread,
+          el("div", { class: "compose" }, box, send),
+        );
+        window.scrollTo(0, document.body.scrollHeight);
+      }
+
+      const loaders = { overview, leads: leadsTab, chats: chatsTab };
+      async function select(name) {
+        tab = name;
+        tabs.forEach((b) =>
+          b.setAttribute("aria-selected", String(b.dataset.tab === name)),
+        );
+        show(empty("Loading…"));
+        try {
+          await loaders[name]();
+        } catch (e) {
+          show(empty("Couldn't load: " + e.message));
+        }
+      }
+      tabs.forEach((b) =>
+        b.addEventListener("click", () => select(b.dataset.tab)),
+      );
+      select("overview");
+    </script>
+  </body>
+</html>

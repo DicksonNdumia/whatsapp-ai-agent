@@ -1,17 +1,40 @@
-import express from "express";
-import dotenv from "dotenv";
-import axios from "axios";
-import { GoogleGenAI } from "@google/genai";
+import { env } from "./config/env.js"; // must stay first: loads .env
 import pool from "./config/db.js";
-import cron from "node-cron";
+import { logger } from "./config/logger.js";
 import app from "./app.js";
-import { startDailySummaryJob } from "./jobs/dailySummary.job.js";
+import { runMigrations } from "./db/migrate.js";
+import { registerJobHandlers } from "./jobs/handlers.js";
+import { startSchedules } from "./jobs/schedule.js";
+import { startWorker, stopWorker } from "./services/queue.service.js";
 
-dotenv.config();
-await import("./config/env.js");
+async function main() {
+  await runMigrations();
+  registerJobHandlers();
+  startWorker(env.WORKER_CONCURRENCY);
+  startSchedules();
 
-startDailySummaryJob();
+  const server = app.listen(env.PORT, () => {
+    logger.info({ port: env.PORT }, "Server running");
+  });
 
-app.listen(3000, () => {
-  console.log("Server running on port 3000");
+  const shutdown = async (signal) => {
+    logger.info({ signal }, "Shutting down");
+    stopWorker();
+    server.close(async () => {
+      await pool.end().catch(() => {});
+      process.exit(0);
+    });
+    setTimeout(() => process.exit(1), 10_000).unref();
+  };
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
+}
+
+process.on("unhandledRejection", (err) =>
+  logger.error({ err }, "Unhandled rejection"),
+);
+
+main().catch((err) => {
+  logger.fatal({ err }, "Failed to start");
+  process.exit(1);
 });

@@ -1,17 +1,10 @@
-import { Pool } from "pg";
-import dotenv from "dotenv";
+import pg from "pg";
+import { env } from "./env.js";
 
-dotenv.config();
-
-const pool = new Pool({
-  //   host: process.env.DB_HOST,
-  //   password: process.env.DB_PASSWORD,
-  //   port: process.env.DB_PORT,
-  //   database: process.env.DB_NAME,
-  //   user: process.env.DB_USER,
-  //This is for the live Neon Db
-  connectionString: process.env.neonUrl,
-  ssl: true,
+const pool = new pg.Pool({
+  connectionString: env.DATABASE_URL,
+  ssl: env.DATABASE_SSL ? true : false,
+  max: 10,
 });
 
 export default pool;
