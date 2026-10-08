@@ -1,5 +1,5 @@
 import express from "express";
-import webhookRoutes from "./routes/webhook.routes.js";
+import webhookRoutes from "./routes/webHook.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import { errorHandler } from "./middleware/error/errorHandler.js";
 
